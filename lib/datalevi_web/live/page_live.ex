@@ -2,38 +2,49 @@ defmodule DataleviWeb.PageLive do
   use DataleviWeb, :live_view
 
   @impl true
-  def mount(_params, _session, socket) do
-    {:ok, assign(socket, query: "", results: %{})}
+  def mount(params, session, socket) do
+    rel_directory = Map.get(params, "path", "/")
+
+    abs_directory = Path.join(Datalevi.directory, rel_directory)
+
+    files = abs_directory
+    |> File.ls!()
+    |> Enum.sort()
+    |> Enum.map(&name_to_info(abs_directory, rel_directory, &1))
+
+    {:ok, assign(socket,
+      files: files,
+      directory: rel_directory,
+      parent_dir: Path.dirname(rel_directory))}
   end
 
-  @impl true
-  def handle_event("suggest", %{"q" => query}, socket) do
-    {:noreply, assign(socket, results: search(query), query: query)}
+  defp name_to_info(abs_directory, rel_directory, basename) do
+    filename = Path.join(abs_directory, basename)
+    stat = File.stat!(filename)
+
+    %{target: Path.join(rel_directory, basename)}
+    |> modify_directory(stat, basename)
+    |> add_stat(stat)
   end
 
-  @impl true
-  def handle_event("search", %{"q" => query}, socket) do
-    case search(query) do
-      %{^query => vsn} ->
-        {:noreply, redirect(socket, external: "https://hexdocs.pm/#{query}/#{vsn}")}
-
-      _ ->
-        {:noreply,
-         socket
-         |> put_flash(:error, "No dependencies found matching \"#{query}\"")
-         |> assign(results: %{}, query: query)}
-    end
+  defp modify_directory(info, %{type: :directory}, base) do
+    Map.merge(info, %{name: base, dir: true})
+  end
+  defp modify_directory(info, stat, base) do
+    Map.merge(info, %{name: base, dir: false, size: stat.size})
   end
 
-  defp search(query) do
-    if not DataleviWeb.Endpoint.config(:code_reloader) do
-      raise "action disabled when not in development"
-    end
-
-    for {app, desc, vsn} <- Application.started_applications(),
-        app = to_string(app),
-        String.starts_with?(app, query) and not List.starts_with?(desc, ~c"ERTS"),
-        into: %{},
-        do: {app, vsn}
+  defp add_stat(info, %{access: :read_write}) do
+    Map.merge(info, %{read: "✔️", write: "✔️"})
   end
+  defp add_stat(info, %{access: :read}) do
+    Map.merge(info, %{read: "✔️", write: "❌"})
+  end
+  defp add_stat(info, %{access: :write}) do
+    Map.merge(info, %{read: "❌", write: "✔️"})
+  end
+  defp add_stat(info, %{access: :none}) do
+    Map.merge(info, %{read: "❌", write: "❌"})
+  end
+
 end

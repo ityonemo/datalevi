@@ -23,6 +23,12 @@ defmodule DataleviWeb.Router do
     live "/", PageLive, :index
   end
 
+  scope "/", DataleviWeb do
+    pipe_through [:browser, :require_authenticated_user]
+
+    get "/download", FileDownloadController, :show
+  end
+
   # Other scopes may use custom stacks.
   # scope "/api", DataleviWeb do
   #   pipe_through :api
