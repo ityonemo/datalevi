@@ -1,33 +1,137 @@
 <%= if function_exported?(Routes, :live_dashboard_path, 2) do %>
   <%= link "LiveDashboard", to: Routes.live_dashboard_path(@socket, :home) %>
   <!-- show the directory here -->
-  <h3> Directory: <%= @directory %> </h3>
+  <h3> Directory: <%= @rel_directory %> </h3>
 
   <%= if @parent_dir do %>
   <a href="?path=<%= @parent_dir %>"> <h4>Parent directory</h4> </a>
   <% end %>
 
   <table>
-    <tr><th></th><th>filename</th><th>read</th><th>write</th><th>size</th></tr>
-    <%= for info <- @files do %>
-    <%= if info.dir do %>
-    <tr>
-      <td></td>
-      <td><a href="?path=<%= info.target %>"><%= info.name %>/</a></td>
-      <td><%= info.read %></td>
-      <td><%= info.write %></td>
-      <td> - </td>
-    </tr>
-    <% else %>
-    <tr>
-      <td><a href="download?path=<%= info.target %>">⏬</a></td>
-      <td><%= info.name %></td>
-      <td><%= info.read %></td>
-      <td><%= info.write %></td>
-      <td><%= info.size %></td>
-    </tr>
-    <% end %>
-    <% end %>
+    <thead>
+      <tr><th></th><th>filename</th><th>read</th><th>write</th><th>size</th></tr>
+    </thead>
+    <tbody phx-udpate=ignore id="dir">
+      <%= for info <- @files do %>
+      <%= if info.dir do %>
+      <tr id="fs-<%= info.name %>" class="file">
+        <td></td>
+        <td><a href="?path=<%= info.target %>"><%= info.name %>/</a></td>
+        <td><%= info.read %></td>
+        <td><%= info.write %></td>
+        <td> - </td>
+      </tr>
+      <% else %>
+      <tr id="fs-<%= info.name %>" class="file">
+        <td><a href="download?path=<%= info.target %>">Download</a></td>
+        <td><%= info.name %></td>
+        <td><%= info.read %></td>
+        <td><%= info.write %></td>
+        <td><%= info.size %></td>
+      </tr>
+      <% end %>
+      <% end %>
+    </tbody>
   </table>
 
 <% end %>
+
+<%# this div needs to exist to create a hook binding %>
+<div id="chart" phx-hook="Directory"></div>
+
+<script>
+
+// COMMON
+const bindInfo = (target, what) => {
+  let new_dl = document.createElement("td");
+  let new_fn = document.createElement("td");
+  let new_rd = document.createElement("td");
+  let new_wr = document.createElement("td");
+  let new_sz = document.createElement("td");
+  bindDownload(new_dl, what);
+  target.appendChild(new_dl);
+  bindFilename(new_fn, what);
+  target.appendChild(new_fn);
+  new_rd.innerText = what.read;
+  target.appendChild(new_rd);
+  new_wr.innerText = what.write;
+  target.appendChild(new_wr);
+  bindSize(new_sz, what);
+  target.appendChild(new_sz);
+}
+
+const bindDownload = (new_dl, what) => {
+  if (what.dir) {
+    new_dl.innerText = ""
+  } else {
+    let new_dl_tag = document.createElement("a");
+    new_dl_tag.innerText = "Download";
+    new_dl_tag.href = "?path=" + what.target;
+    new_dl.appendChild(new_dl_tag);
+  }
+}
+
+const bindFilename = (new_fn, what) => {
+  if (what.dir) {
+    let new_goto_tag = document.createElement("a");
+    new_goto_tag.innerText = what.name + "/";
+    new_goto_tag.href = "?path=" + what.target;
+    new_fn.appendChild(new_goto_tag);
+  } else {
+    new_fn.innerText = what.name;
+  }
+}
+
+const bindSize = (new_sz, what) => {
+  if (what.dir) {
+    new_sz.innerText = "-";
+  } else {
+    new_sz.innerText = what.size;
+  }
+}
+
+const byName = (left, right) =>
+  left.id == right.id ? 0 : (left.id > right.id ? 1 : -1)
+
+const sortFiles = () => {
+  let target = document.getElementById("dir")
+  let children = Array.from(document.querySelectorAll(".file")).sort(byName)
+  children.forEach(child => target.removeChild(child))
+  children.forEach(child => target.appendChild(child))
+}
+
+// CREATED
+const handleCreated = ({file: what}) => {
+  let new_row = document.createElement("tr");
+  bindInfo(new_row, what);
+  new_row.id = "fs-" + what.name;
+  new_row.classList.add("file");
+  document.getElementById("dir").appendChild(new_row);
+  sortFiles()
+};
+
+// DELETED
+const handleDeleted = ({file: which}) => {
+  let target = document.getElementById("fs-" + which);
+  document.getElementById("dir").removeChild(target);
+}
+
+// MODIFIED
+const handleModified = ({file: what}) => {
+  let target = document.getElement.ById("fs-" + what.name);
+  target.children.forEach(child => target.removeChild(child));
+  bindInfo(target, what);
+  sortFiles()
+}
+
+// HOOKS
+window.Hooks = {};
+window.Hooks.Directory = {
+  mounted(){
+    this.handleEvent("created", handleCreated);
+    this.handleEvent("deleted", handleDeleted);
+  }
+}
+
+
+</script>

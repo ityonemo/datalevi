@@ -9,7 +9,8 @@ defmodule Datalevi.Application do
       DataleviWeb.Telemetry,
       {Phoenix.PubSub, name: Datalevi.PubSub},
       DataleviWeb.Endpoint,
-      startup_tasks()
+      startup_tasks(),
+      Datalevi.FsSupervisor, # must come after startup tasks.
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html
@@ -54,5 +55,12 @@ defmodule Datalevi.Application do
     Logger.info("root directory set to #{directory}")
 
     Application.put_env(:datalevi, :directory, directory)
+
+    # kick over the fs supervisor and get it to rebind to the directory
+    Process.sleep(200)
+
+    Datalevi.FsSupervisor
+    |> Process.whereis
+    |> Process.exit(:kill)
   end
 end
