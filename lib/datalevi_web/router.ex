@@ -26,7 +26,8 @@ defmodule DataleviWeb.Router do
   scope "/", DataleviWeb do
     pipe_through [:browser, :require_authenticated_user]
 
-    get "/download", FileDownloadController, :show
+    get "/download", FileController, :show
+    delete "/delete", FileController, :delete
   end
 
   # Other scopes may use custom stacks.

@@ -23,7 +23,10 @@
       </tr>
       <% else %>
       <tr id="fs-<%= info.name %>" class="file">
-        <td><a href="download?path=<%= info.target %>">Download</a></td>
+        <td>
+          <a href="download?path=<%= info.target %>">Download</a> |
+          <a onclick="deleteFile('<%= info.target %>')">Delete</a>
+        </td>
         <td><%= info.name %></td>
         <td><%= info.read %></td>
         <td><%= info.write %></td>
@@ -43,13 +46,13 @@
 
 // COMMON
 const bindInfo = (target, what) => {
-  let new_dl = document.createElement("td");
+  let new_ac = document.createElement("td");
   let new_fn = document.createElement("td");
   let new_rd = document.createElement("td");
   let new_wr = document.createElement("td");
   let new_sz = document.createElement("td");
-  bindDownload(new_dl, what);
-  target.appendChild(new_dl);
+  bindActions(new_ac, what);
+  target.appendChild(new_ac);
   bindFilename(new_fn, what);
   target.appendChild(new_fn);
   new_rd.innerText = what.read;
@@ -60,14 +63,22 @@ const bindInfo = (target, what) => {
   target.appendChild(new_sz);
 }
 
-const bindDownload = (new_dl, what) => {
+const bindActions = (new_ac, what) => {
   if (what.dir) {
-    new_dl.innerText = ""
+    new_ac.innerText = ""
   } else {
     let new_dl_tag = document.createElement("a");
     new_dl_tag.innerText = "Download";
     new_dl_tag.href = "?path=" + what.target;
-    new_dl.appendChild(new_dl_tag);
+    new_ac.appendChild(new_dl_tag);
+
+    let new_spacer = document.createTextNode(" | ");
+    new_ac.appendChild(new_spacer);
+
+    let new_del_tag = document.createElement("a");
+    new_del_tag.innerText = "Delete";
+    new_del_tag.href = "?delete=" + what.target;
+    new_ac.appendChild(new_del_tag);
   }
 }
 
@@ -98,6 +109,19 @@ const sortFiles = () => {
   let children = Array.from(document.querySelectorAll(".file")).sort(byName)
   children.forEach(child => target.removeChild(child))
   children.forEach(child => target.appendChild(child))
+}
+
+const deleteFile = (who) => {
+  crsf_token = document.querySelector('meta[name="csrf-token"]').content
+  fetch("delete", {
+    method: 'delete',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-csrf-token': crsf_token
+    },
+    credentials: 'same-origin',
+    body: JSON.stringify({file: who, _crsf_token: crsf_token})
+  })
 }
 
 // CREATED
@@ -132,6 +156,5 @@ window.Hooks.Directory = {
     this.handleEvent("deleted", handleDeleted);
   }
 }
-
 
 </script>
