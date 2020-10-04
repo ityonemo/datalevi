@@ -11,13 +11,15 @@ defmodule DataleviWeb.RootUserRegistrationController do
   end
 
   def create(conn, %{"user" => user_params}) do
-    case Accounts.register_user(user_params) do
+    case Accounts.register_user(user_params) |> IO.inspect(label: "14") do
       {:ok, user} ->
         #{:ok, _} =
         #  Accounts.deliver_user_confirmation_instructions(
         #    user,
         #    &Routes.user_confirmation_url(conn, :confirm, &1)
         #  )
+
+        Datalevi.Application.set_root_configured?()
 
         conn
         |> put_flash(:info, "User created successfully.")
