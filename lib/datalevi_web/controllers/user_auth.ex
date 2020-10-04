@@ -111,6 +111,19 @@ defmodule DataleviWeb.UserAuth do
   @doc """
   Used for routes that require the user to not be authenticated.
   """
+  def redirect_if_root_configured(conn, _opts) do
+    if Datalevi.root_configured? do
+      conn
+      |> redirect(to: Routes.page_path(conn, :index))
+      |> halt()
+    else
+      conn
+    end
+  end
+
+  @doc """
+  Used for routes that require the user to not be authenticated.
+  """
   def redirect_if_user_is_authenticated(conn, _opts) do
     if conn.assigns[:current_user] do
       conn

@@ -13,19 +13,28 @@
     <header>
       <section class="container">
         <nav role="navigation">
-          <ul>
-            <li><a href="https://hexdocs.pm/phoenix/overview.html">Get Started</a></li>
-            <%= if function_exported?(Routes, :live_dashboard_path, 2) do %>
-              <li><%= link "LiveDashboard", to: Routes.live_dashboard_path(@conn, :home) %></li>
-            <% end %>
-          </ul>
           <%= render "_user_menu.html", assigns %>
         </nav>
-        <a href="https://phoenixframework.org/" class="phx-logo">
-          <img src="<%= Routes.static_path(@conn, "/images/phoenix.png") %>" alt="Phoenix Framework Logo"/>
-        </a>
+        <h3> Datalevi: Privacy oriented Storage</h3>
       </section>
     </header>
+
+    <%= if Datalevi.root_configured? do %>
     <%= @inner_content %>
+    <% else %>
+    <main role="main" class="container">
+      <section class="phx-hero">
+        <h1><%= gettext "Welcome to %{name}!", name: "Datalevi" %></h1>
+        <p>Your privacy orienty data server</p>
+      </section>
+
+      <%=
+        alias Datalevi.Accounts
+        changeset = Accounts.change_user_registration(%Accounts.User{})
+        render(DataleviWeb.RootUserRegistrationView, "new.html",
+          Map.put(assigns, :changeset, changeset)) %>
+    </main>
+    <% end %>
+
   </body>
 </html>

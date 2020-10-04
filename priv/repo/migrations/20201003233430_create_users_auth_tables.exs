@@ -12,7 +12,8 @@ defmodule Datalevi.Repo.Migrations.CreateUsersAuthTables do
       timestamps()
     end
 
-    create unique_index(:users, [:email, :name])
+    create unique_index(:users, [:email])
+    create unique_index(:users, [:name])
 
     create table(:users_tokens) do
       add :user_id, references(:users, on_delete: :delete_all), null: false

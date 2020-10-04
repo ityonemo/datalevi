@@ -1,6 +1,7 @@
 defmodule Datalevi.Application do
   @moduledoc false
   use Application
+  require Logger
 
   def start(_type, _args) do
     children = [
@@ -40,7 +41,8 @@ defmodule Datalevi.Application do
 
   def set_root_configured? do
     configured? = Datalevi.Repo.aggregate(Datalevi.Accounts.User, :count) > 0
-    Application.put_env(:datalevi, :configured?, configured?)
+    unless configured?, do: Logger.warn("detected that root is not configured")
+    Application.put_env(:datalevi, :root_configured?, configured?)
   end
 
   @directory Application.compile_env(:datalevi, :directory)
@@ -48,6 +50,8 @@ defmodule Datalevi.Application do
     directory = Path.absname(@directory ||
     Application.get_env(:datalevi, :directory) ||
     File.cwd!)
+
+    Logger.info("root directory set to #{directory}")
 
     Application.put_env(:datalevi, :directory, directory)
   end
